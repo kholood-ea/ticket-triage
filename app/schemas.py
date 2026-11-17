@@ -12,6 +12,23 @@ class Channel(str, Enum):
     chat = "chat"
 
 
+class Category(str, Enum):
+    billing_charges = "billing_charges"
+    payment_failure = "payment_failure"
+    account_access = "account_access"
+    service_outage = "service_outage"
+    technical_issue = "technical_issue"
+    security_fraud = "security_fraud"
+    request_information = "request_information"
+    other_unclear = "other_unclear"
+
+
+class Priority(str, Enum):
+    high = "high"
+    medium = "medium"
+    low = "low"
+
+
 class TicketIn(BaseModel):
     text: str = Field(min_length=1, max_length=5000)
     channel: Channel
@@ -31,8 +48,8 @@ class TicketOut(BaseModel):
     text: str
     channel: Channel
     metadata: dict[str, Any] | None = None
-    category: str | None = None  # filled by the classifier on Day 4
-    priority: str | None = None
+    category: Category | str | None = None  # filled by the classifier on Day 4
+    priority: Priority | str | None = None
     created_at: str
 
 

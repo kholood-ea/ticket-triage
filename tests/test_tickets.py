@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 
 from app import db
 from app.main import create_app
+from app.schemas import Category, Priority
 
 ARABIC = "الفلوس اتخصمت من كارتي مرتين ومحدش رد عليا"
 
@@ -54,3 +55,41 @@ def test_stats_counts_by_category(client, db_path):
     client.post("/tickets", json={"text": ARABIC, "channel": "app"})  # unclassified
     stats = {row["category"]: row["n"] for row in client.get("/stats/by-category").json()}
     assert stats == {"billing": 2, "outage": 1, "unclassified": 1}
+
+
+def test_ticket_category_and_priority_serialization(client, db_path):
+    tid = db.insert_ticket(
+        db_path,
+        text=ARABIC,
+        channel="app",
+        category=Category.billing_charges.value,
+        priority=Priority.high.value,
+    )
+    got = client.get(f"/tickets/{tid}").json()
+    assert got["category"] == Category.billing_charges.value
+    assert got["priority"] == Priority.high.value
+
+
+def test_all_taxonomy_categories_are_valid_enums():
+    expected_categories = {
+        "billing_charges",
+        "payment_failure",
+        "account_access",
+        "service_outage",
+        "technical_issue",
+        "security_fraud",
+        "request_information",
+        "other_unclear",
+    }
+    assert {c.value for c in Category} == expected_categories
+    assert {p.value for p in Priority} == {"high", "medium", "low"}
+
+
+def test_text_5000_char_limit(client):
+    r_valid = client.post("/tickets", json={"text": "a" * 5000, "channel": "app"})
+    assert r_valid.status_code == 201
+
+    r_invalid = client.post("/tickets", json={"text": "a" * 5001, "channel": "app"})
+    assert r_invalid.status_code == 422
+
+
